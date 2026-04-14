@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The $1B Decision — 1TCC</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@300;400;500;600;700;800&family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,800;1,700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --navy:#0d1b2e;--navy2:#122338;--navy3:#1a3050;--navy4:#0a1520;
+  --yellow:#f5a623;--yellow2:#ffd166;--ydim:rgba(245,166,35,0.13);--yglow:rgba(245,166,35,0.25);
+  --white:#fff;--w80:rgba(255,255,255,0.8);--w60:rgba(255,255,255,0.6);
+  --w30:rgba(255,255,255,0.3);--w15:rgba(255,255,255,0.13);--w10:rgba(255,255,255,0.08);
+  --green:#00d084;--gdim:rgba(0,208,132,0.12);
+  --red:#ff5252;--rdim:rgba(255,82,82,0.1);
+  --r4:4px;--r8:8px;--r12:12px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;overflow:hidden;font-family:'Barlow',sans-serif;background:var(--navy);color:var(--white);}
+/* Mobile: allow screens to scroll */
+@media(max-width:640px){
+  html,body{overflow:auto;height:auto;}
+  .screen{position:relative;inset:auto;min-height:100svh;padding:16px;}
+  .screen:not(.active){display:none;}
+  #s0{gap:14px;padding:20px 16px;}
+  .hero{font-size:clamp(44px,14vw,72px);}
+  .pulse{width:70px;height:70px;}
+  .lock{font-size:26px;}
+  .mode-cards{grid-template-columns:1fr;max-width:100%;}
+  .inputs-grid{grid-template-columns:1fr !important;}
+  #s-game{max-width:100%;padding-top:12px;height:auto;overflow:visible;justify-content:flex-start;}
+  .game-body{grid-template-columns:1fr;gap:10px;}
+  .game-right{order:-1;}
+  .chart-wrap canvas{max-height:90px !important;height:90px !important;}
+  .chart-headline{font-size:13px;}
+  .q-txt{font-size:13px;}
+  .opt{font-size:12px;padding:9px 12px;}
+  .btn-primary{font-size:15px;padding:13px 24px;width:100%;}
+  .btn-secondary{font-size:13px;padding:10px 18px;width:100%;}
+  #s-results{max-width:100%;gap:12px;justify-content:flex-start;padding-top:20px;}
+  .r-metrics{grid-template-columns:1fr;}
+  .r-card-val{font-size:22px;}
+  .topbar{margin-bottom:8px;}
+  .pdot{width:20px;height:4px;}
+  .results-actions{flex-direction:column;align-items:stretch;}
+}
+.bg{position:fixed;inset:0;z-index:0;}
+.bg-grid{position:absolute;inset:0;background-image:linear-gradient(var(--w10) 1px,transparent 1px),linear-gradient(90deg,var(--w10) 1px,transparent 1px);background-size:56px 56px;}
+.bg-orb{position:absolute;border-radius:50%;filter:blur(90px);pointer-events:none;}
+.orb1{width:500px;height:500px;background:rgba(245,166,35,0.07);top:-150px;right:-100px;}
+.orb2{width:350px;height:350px;background:rgba(0,100,200,0.06);bottom:-80px;left:-80px;}
+.flash-overlay{position:fixed;inset:0;z-index:999;pointer-events:none;opacity:0;}
+.flash-overlay.green{background:rgba(0,208,132,0.18);animation:flashAnim .5s ease;}
+.flash-overlay.red{background:rgba(255,82,82,0.2);animation:flashAnim .5s ease;}
+@keyframes flashAnim{0%{opacity:0}20%{opacity:1}100%{opacity:0}}
+.screen{position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;opacity:0;pointer-events:none;transition:opacity .35s ease;}
+.screen.active{opacity:1;pointer-events:all;}
+.logo-tcc{display:flex;align-items:center;gap:9px;}
+.logo-box{background:var(--yellow);color:#000;font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;width:38px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:3px;flex-shrink:0;}
+.logo-name{font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;letter-spacing:.02em;}
+.co-logo-placeholder{width:32px;height:32px;border-radius:4px;background:var(--navy3);border:1px solid var(--w15);display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;color:var(--yellow);}
+.co-name-txt{font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:600;color:var(--w60);}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;border-radius:var(--r4);cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.07em;text-transform:uppercase;transition:all .2s;}
+.btn-primary{background:var(--yellow);color:#000;font-size:17px;padding:15px 40px;}
+.btn-primary:hover{background:var(--yellow2);transform:translateY(-2px);box-shadow:0 10px 32px var(--yglow);}
+.btn-secondary{background:transparent;color:var(--w60);font-size:14px;padding:12px 24px;border:1px solid var(--w15);}
+.btn-secondary:hover{border-color:var(--w30);color:var(--white);}
+.inp-group{display:flex;flex-direction:column;gap:7px;}
+.inp-label{font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:.14em;color:var(--w60);text-transform:uppercase;}
+.inp-row{display:flex;align-items:center;background:var(--navy2);border:1px solid var(--w15);border-radius:var(--r4);overflow:hidden;transition:border-color .2s,box-shadow .2s;}
+.inp-row:focus-within{border-color:var(--yellow);box-shadow:0 0 0 3px var(--ydim);}
+.inp-pre{padding:0 12px;font-family:'Barlow Condensed',sans-serif;font-size:13px;color:var(--yellow);background:rgba(245,166,35,0.07);border-right:1px solid var(--w15);height:48px;display:flex;align-items:center;white-space:nowrap;}
+.inp-field{flex:1;background:transparent;border:none;outline:none;color:var(--white);font-family:'Barlow Condensed',sans-serif;font-size:18px;padding:0 14px;height:48px;}
+.inp-field::placeholder{color:var(--w30);}
+.inp-suf{padding:0 12px;font-family:'Barlow Condensed',sans-serif;font-size:12px;color:var(--w30);}
+.inp-select{flex:1;background:transparent;border:none;outline:none;color:var(--white);font-family:'Barlow Condensed',sans-serif;font-size:16px;padding:0 14px;height:48px;cursor:pointer;}
+.inp-select option{background:var(--navy2);}
+.topbar{width:100%;display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.pdots{display:flex;gap:6px;}
+.pdot{width:26px;height:5px;border-radius:3px;background:var(--w10);border:1px solid var(--w15);transition:all .3s;}
+.pdot.done{background:var(--yellow);border-color:var(--yellow);}
+.pdot.active{background:rgba(245,166,35,.38);border-color:var(--yellow);}
+.score-box{display:flex;align-items:center;gap:7px;}
+.score-lbl{font-family:'Barlow Condensed',sans-serif;font-size:11px;color:var(--w60);letter-spacing:.1em;text-transform:uppercase;}
+.score-n{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:var(--yellow);}
+#q-timer-txt{font-family:'Barlow Condensed',sans-serif;font-size:12px;color:var(--w60);letter-spacing:.08em;margin-left:10px;}
+#q-timer-txt.urg{color:var(--red);animation:blink2 .5s ease-in-out infinite;}
+@keyframes blink2{0%,100%{opacity:1}50%{opacity:.35}}
+.tbar{width:100%;height:3px;background:var(--w10);border-radius:2px;margin-bottom:10px;overflow:hidden;}
+.tbar-f{height:100%;background:var(--yellow);border-radius:2px;transition:width .1s linear,background .3s;box-shadow:0 0 5px var(--yglow);}
+.chart-wrap{width:100%;background:var(--navy2);border:1px solid var(--w15);border-radius:var(--r8);padding:10px 12px 8px;position:relative;}
+.chart-wrap canvas{max-height:130px !important;height:130px !important;}
+.chart-label{font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:.12em;color:var(--w30);text-transform:uppercase;margin-bottom:4px;}
+.chart-headline{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;color:var(--yellow);margin-bottom:4px;}
+.qcard{width:100%;background:var(--navy2);border:1px solid var(--w15);border-radius:var(--r8);padding:16px 20px;position:relative;overflow:hidden;margin-bottom:10px;}
+.qcard::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;background:var(--yellow);}
+.q-ctx{font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:.14em;color:var(--yellow);text-transform:uppercase;margin-bottom:5px;}
+.q-txt{font-size:14px;font-weight:500;line-height:1.5;color:var(--white);}
+.opts{width:100%;display:flex;flex-direction:column;gap:7px;margin-bottom:9px;}
+.opt{width:100%;background:var(--navy2);border:1px solid var(--w15);border-radius:var(--r8);padding:10px 16px;cursor:pointer;text-align:left;display:flex;align-items:flex-start;gap:12px;transition:all .18s;color:var(--white);font-family:'Barlow',sans-serif;font-size:13px;line-height:1.45;}
+.opt:hover:not(:disabled){border-color:var(--yellow);background:var(--ydim);transform:translateX(3px);}
+.opt:disabled{cursor:default;}
+.opt.correct{border-color:var(--green);background:var(--gdim);}
+.opt.correct.flash{animation:optFlashGreen .5s ease;}
+.opt.wrong{border-color:var(--red);background:var(--rdim);opacity:.65;}
+.opt.wrong.flash{animation:optFlashRed .5s ease;}
+@keyframes optFlashGreen{0%{background:rgba(0,208,132,.5)}100%{background:var(--gdim)}}
+@keyframes optFlashRed{0%{background:rgba(255,82,82,.5)}100%{background:var(--rdim)}}
+.opt-l{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;color:var(--yellow);flex-shrink:0;width:20px;margin-top:1px;}
+.opt.correct .opt-l{color:var(--green);}
+.opt.wrong .opt-l{color:var(--red);}
+.opt-ic{margin-left:auto;font-size:13px;flex-shrink:0;margin-top:1px;}
+.fb{width:100%;border-radius:var(--r8);padding:11px 16px;display:none;gap:10px;align-items:flex-start;margin-bottom:8px;}
+.fb.show{display:flex;animation:fadeUp .28s ease;}
+.fb.ok{background:var(--gdim);border:1px solid rgba(0,208,132,.28);}
+.fb.bad{background:var(--rdim);border:1px solid rgba(255,82,82,.22);}
+.fb-ic{font-size:14px;flex-shrink:0;}
+.fb-tx{font-size:12px;color:var(--w60);line-height:1.5;}
+.fb-tx strong{color:var(--white);}
+@keyframes fadeUp{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+#s0{gap:20px;text-align:center;}
+.hero{font-family:'Barlow Condensed',sans-serif;font-size:clamp(50px,7vw,88px);font-weight:800;line-height:.95;text-transform:uppercase;letter-spacing:-.01em;}
+.hero em{color:var(--yellow);font-style:italic;}
+.hero .sub{font-size:clamp(24px,3.5vw,40px);color:var(--w60);font-weight:600;}
+.tagline{font-size:15px;color:var(--w60);max-width:460px;line-height:1.6;font-weight:300;}
+.pills{display:flex;gap:8px;justify-content:center;align-items:center;}
+.pill{padding:5px 13px;border-radius:3px;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;}
+.pill-y{background:var(--yellow);color:#000;}
+.pill-o{border:1px solid var(--w15);color:var(--w60);}
+.pulse{width:90px;height:90px;border-radius:50%;border:1px solid var(--yellow);display:flex;align-items:center;justify-content:center;margin:0 auto;position:relative;}
+.pulse::before,.pulse::after{content:'';position:absolute;inset:-13px;border-radius:50%;border:1px solid rgba(245,166,35,.22);animation:pulseR 2s ease-out infinite;}
+.pulse::after{animation-delay:1s;}
+@keyframes pulseR{from{transform:scale(1);opacity:.5}to{transform:scale(1.45);opacity:0}}
+.lock{font-size:32px;animation:bob 2s ease-in-out infinite;}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+.blink-dot{width:6px;height:6px;border-radius:50%;background:var(--yellow);animation:bd 1.4s ease-in-out infinite;}
+@keyframes bd{0%,100%{opacity:1}50%{opacity:.2}}
+.timer-pill{display:inline-flex;align-items:center;gap:6px;background:var(--w10);border:1px solid var(--w15);border-radius:100px;padding:6px 16px;font-size:12px;color:var(--w60);font-family:'Barlow Condensed',sans-serif;letter-spacing:.05em;}
+#s-mode{gap:22px;}
+.mode-cards{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;max-width:580px;}
+.mode-card{background:var(--navy2);border:2px solid var(--w15);border-radius:var(--r12);padding:22px 20px;cursor:pointer;text-align:left;transition:all .2s;}
+.mode-card:hover,.mode-card.sel{border-color:var(--yellow);background:var(--ydim);}
+.mode-card-icon{font-size:24px;margin-bottom:10px;}
+.mode-card-title{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;margin-bottom:5px;}
+.mode-card-desc{font-size:12px;color:var(--w60);line-height:1.5;}
+/* GAME */
+#s-game{max-width:980px;width:100%;justify-content:flex-start;padding-top:18px;gap:0;height:100%;overflow:auto;}
+.game-body{display:grid;grid-template-columns:1fr 260px;gap:14px;width:100%;align-items:start;flex:1;}
+.game-left{display:flex;flex-direction:column;gap:9px;min-width:0;}
+.game-right{display:flex;flex-direction:column;}
+/* RESULTS */
+#s-results{max-width:720px;width:100%;gap:18px;}
+.r-metrics{display:grid;grid-template-columns:1fr 1fr;gap:14px;width:100%;}
+.r-card{background:var(--navy2);border:1px solid var(--w15);border-radius:var(--r12);padding:20px 22px;position:relative;overflow:hidden;}
+.r-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--yellow);}
+.r-card.green-top::before{background:var(--green);}
+.r-card-lbl{font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:.13em;color:var(--w30);text-transform:uppercase;margin-bottom:8px;}
+.r-card-val{font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:700;color:var(--white);line-height:1.1;}
+.r-card-val .pos{color:var(--green);}
+.r-card-sub{font-size:12px;color:var(--w60);margin-top:6px;line-height:1.5;}
+.r-card-disc{font-size:10px;color:var(--w30);margin-top:6px;line-height:1.4;}
+.milestone-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(245,166,35,.15);border:1px solid rgba(245,166,35,.35);border-radius:4px;padding:5px 10px;font-family:'Barlow Condensed',sans-serif;font-size:12px;color:var(--yellow);margin-top:8px;}
+.qr-wrap{display:flex;flex-direction:column;align-items:center;gap:6px;}
+.qr-lbl{font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:.1em;color:var(--w30);text-transform:uppercase;}
+.qr-img{width:88px;height:88px;border-radius:var(--r4);background:var(--white);padding:4px;}
+/* EMAIL */
+#s-email{gap:0;}
+.email-wrap{width:100%;max-width:460px;background:var(--navy2);border:1px solid var(--w15);border-radius:var(--r12);padding:28px 30px;display:flex;flex-direction:column;gap:16px;align-items:center;text-align:center;}
+.email-title{font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:700;}
+.email-sub{font-size:13px;color:var(--w60);line-height:1.6;max-width:340px;}
+.email-inp-row{display:flex;width:100%;background:var(--navy3);border:1px solid var(--w15);border-radius:var(--r4);overflow:hidden;transition:border-color .2s;}
+.email-inp-row:focus-within{border-color:var(--yellow);}
+.email-inp{flex:1;background:transparent;border:none;outline:none;color:var(--white);font-family:'Barlow',sans-serif;font-size:14px;padding:0 14px;height:44px;}
+.email-inp::placeholder{color:var(--w30);}
+#s-confirm{text-align:center;}
+/* LEADS */
+#s-leads{max-width:960px;width:100%;gap:14px;}
+table.leads{width:100%;border-collapse:collapse;font-size:11px;}
+table.leads th{font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:.1em;color:var(--w60);text-transform:uppercase;padding:7px 10px;border-bottom:1px solid var(--w15);text-align:left;}
+table.leads td{padding:7px 10px;border-bottom:1px solid var(--w10);color:var(--w80);}
+table.leads tr:hover td{background:var(--w10);}
+.lead-table-wrap{width:100%;overflow-x:auto;}
+.ptcl{position:fixed;pointer-events:none;z-index:200;animation:pfly 1.4s ease-out forwards;font-size:16px;}
+@keyframes pfly{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-140px)}}
+.cp-logo-ph{width:40px;height:40px;border-radius:6px;background:var(--navy3);border:1px solid var(--w15);display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:var(--yellow);flex-shrink:0;}
+</style>
+</head>
+<body>
+<div class="bg"><div class="bg-grid"></div><div class="bg-orb orb1"></div><div class="bg-orb orb2"></div></div>
+<div class="flash-overlay" id="flash-overlay"></div>
+
+<!-- S0: ATTRACT -->
+<div class="screen active" id="s0">
+  <div class="pulse"><div class="lock">🔒</div></div>
+  <div class="pills">
+    <span class="pill pill-y">1TCC</span>
+    <span style="color:var(--w30);font-size:14px">×</span>
+    <span class="pill pill-o">BCG</span>
+  </div>
+  <div class="hero">The<br><em>$1B</em><br><span class="sub">Decision</span></div>
+  <div class="tagline">You are CFO of a major manufacturer. 5 decisions. Every choice moves your balance sheet — live.</div>
+  <div class="timer-pill"><div class="blink-dot"></div>2–3 min &nbsp;·&nbsp; 5 decisions &nbsp;·&nbsp; real financial impact</div>
+  <button class="btn btn-primary" onclick="goTo('s-mode')">▶ &nbsp;Take the CFO seat</button>
+</div>
+
+<!-- S-MODE -->
+<div class="screen" id="s-mode">
+  <div class="logo-tcc" style="margin-bottom:6px"><div class="logo-box">1</div><div class="logo-name">T<span style="color:var(--yellow)">CC</span></div></div>
+  <div style="font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:800;margin-bottom:6px;">How do you want to play?</div>
+  <div style="font-size:14px;color:var(--w60);max-width:440px;text-align:center;line-height:1.55;margin-bottom:18px;">Use a pre-built company, or enter your own numbers for a personalised impact analysis.</div>
+  <div class="mode-cards">
+    <div class="mode-card" id="mc-demo" onclick="selectMode('demo')">
+      <div class="mode-card-icon">🎮</div>
+      <div class="mode-card-title">Demo mode</div>
+      <div class="mode-card-desc">Play with a pre-loaded fictional manufacturer. See the 1TCC impact instantly.</div>
+    </div>
+    <div class="mode-card" id="mc-live" onclick="selectMode('live')">
+      <div class="mode-card-icon">🏢</div>
+      <div class="mode-card-title">My company</div>
+      <div class="mode-card-desc">Enter your company data. The game uses your real numbers to calculate your personal impact analysis.</div>
+    </div>
+  </div>
+  <div style="display:flex;gap:12px;margin-top:18px">
+    <button class="btn btn-secondary" onclick="goTo('s0')">← Back</button>
+    <button class="btn btn-primary" id="btn-mode-next" onclick="modeNext()" style="opacity:.4;pointer-events:none">Continue →</button>
+  </div>
+</div>
+
+<!-- S-INPUTS -->
+<div class="screen" id="s-ticker">
+  <div style="width:100%;max-width:680px">
+    <div style="margin-bottom:20px">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:.14em;color:var(--yellow);text-transform:uppercase;margin-bottom:6px">YOUR COMPANY · 4 INPUTS</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;">Tell us about your business</div>
+      <div style="font-size:13px;color:var(--w60);margin-top:4px;line-height:1.5;">These numbers personalise the game and your CII impact analysis. Takes 30 seconds.</div>
+    </div>
+    <div class="inputs-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;">
+      <div class="inp-group">
+        <div class="inp-label">Company name</div>
+        <div class="inp-row"><div class="inp-pre">🏢</div><input class="inp-field" id="in-company" placeholder="Acme Corp" type="text"></div>
+      </div>
+      <div class="inp-group">
+        <div class="inp-label">Total Inventory on hand (millions)</div>
+        <div class="inp-row"><div class="inp-pre">$</div><input class="inp-field" id="in-inv" placeholder="1200" type="number" min="0"><div class="inp-suf">M</div></div>
+      </div>
+      <div class="inp-group">
+        <div class="inp-label">Current Cash Conversion Cycle</div>
+        <div class="inp-row"><div class="inp-pre">⏱</div><input class="inp-field" id="in-ccc" placeholder="75" type="number" min="0"><div class="inp-suf">days</div></div>
+      </div>
+      <div class="inp-group">
+        <div class="inp-label">Cost of capital / WACC</div>
+        <div class="inp-row"><div class="inp-pre">%</div><input class="inp-field" id="in-wacc" placeholder="8" type="number" min="0" max="30"></div>
+      </div>
+      <div class="inp-group">
+        <div class="inp-label">Credit rating</div>
+        <div class="inp-row"><div class="inp-pre">★</div>
+          <select class="inp-select" id="in-rating">
+            <option value="">Select…</option>
+            <option value="AAA">AAA</option><option value="AA">AA</option>
+            <option value="A">A</option><option value="BBB">BBB</option>
+            <option value="BB">BB</option><option value="B">B</option>
+          </select>
+        </div>
+      </div>
+      <div class="inp-group" style="align-self:flex-end">
+        <label id="optin-label" onclick="clearOptinError()" style="display:flex;align-items:flex-start;gap:11px;background:var(--navy3);border:1px solid var(--w15);border-radius:var(--r8);padding:12px 14px;cursor:pointer;transition:border-color .2s,box-shadow .2s;">
+          <input type="checkbox" id="in-optin" style="margin-top:2px;accent-color:var(--yellow);width:15px;height:15px;flex-shrink:0;cursor:pointer;">
+          <span style="font-size:11px;color:var(--w60);line-height:1.55;">
+            I agree to be contacted by the 1TCC team with a personalised Capital Impact analysis and information about 1TCC's services.
+            <span style="display:block;margin-top:3px;font-size:10px;color:var(--w30);">You can withdraw consent at any time. Data processed per our Privacy Policy.</span>
+            <span id="optin-error" style="display:none;margin-top:4px;font-size:10px;color:var(--red);font-weight:500;">⚠ Please confirm your consent to continue.</span>
+          </span>
+        </label>
+      </div>
+    </div>
+    <div style="display:flex;gap:12px;">
+      <button class="btn btn-secondary" onclick="goTo('s-mode')">← Back</button>
+      <button class="btn btn-primary" onclick="startFromTicker()">Start the game →</button>
+    </div>
+  </div>
+</div>
+
+<!-- S-GAME -->
+<div class="screen" id="s-game">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div class="logo-box" style="width:30px;height:30px;font-size:15px;">1</div>
+      <div id="game-co-logo"></div>
+      <div class="pdots" id="pdots"></div>
+    </div>
+    <div class="score-box">
+      <span class="score-lbl">Score</span>
+      <span class="score-n" id="score-n">0</span>
+      <span class="score-lbl">/ 5</span>
+      <span id="q-timer-txt">30s</span>
+    </div>
+  </div>
+  <div class="tbar"><div class="tbar-f" id="tbar-f" style="width:100%"></div></div>
+  <div class="game-body">
+    <div class="game-left">
+      <div class="qcard">
+        <div class="q-ctx" id="q-ctx"></div>
+        <div class="q-txt" id="q-txt"></div>
+      </div>
+      <div class="opts" id="opts"></div>
+      <div class="fb" id="fb"><div class="fb-ic" id="fb-ic"></div><div class="fb-tx" id="fb-tx"></div></div>
+      <button class="btn btn-primary" id="btn-next" style="display:none;align-self:flex-end;font-size:14px;padding:12px 28px" onclick="nextQ()">Next →</button>
+    </div>
+    <div class="game-right">
+      <div class="chart-wrap">
+        <div class="chart-label">FCF impact building up</div>
+        <div class="chart-headline" id="chart-headline">$0M freed so far</div>
+        <canvas id="fcf-chart" height="130" style="max-height:130px"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- S-RESULTS -->
+<div class="screen" id="s-results">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+    <div id="results-co-logo"></div>
+    <div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:.14em;color:var(--yellow);text-transform:uppercase;">CII IMPACT ANALYSIS</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;" id="results-co-name">—</div>
+    </div>
+  </div>
+  <div class="r-metrics">
+    <div class="r-card green-top">
+      <div class="r-card-lbl">FCF Impact</div>
+      <div class="r-card-val"><span class="pos" id="rf-fcf">—</span></div>
+      <div class="r-card-sub" id="rf-fcf-sub">—</div>
+    </div>
+    <div class="r-card">
+      <div class="r-card-lbl">Market Cap Upside</div>
+      <div class="r-card-val" id="rf-mcap">—</div>
+      <div class="r-card-sub" id="rf-mcap-sub">—</div>
+      <div id="rf-milestone"></div>
+      <div class="r-card-disc">*Assumes current P/FCF multiple holds. Conditions apply.</div>
+    </div>
+  </div>
+  <div style="background:var(--navy2);border:1px solid rgba(245,166,35,.25);border-left:3px solid var(--yellow);border-radius:0 var(--r8) var(--r8) 0;padding:14px 18px;width:100%;font-size:13px;color:var(--w60);line-height:1.6;" id="r-insight">—</div>
+  <div class="results-actions" style="display:flex;gap:12px;justify-content:center;width:100%">
+    <button class="btn btn-secondary" onclick="goTo('s0')">↺ &nbsp;Play again</button>
+    <a href="https://forms.office.com/Pages/ResponsePage.aspx?id=TOKBQ-eajEOs7m18c-qFkFG3PK_2t-xGhy6hQldlX0hUNjhBVThDNUZTM0VXSFJDQ0YzOVVQWlpQNC4u" target="_blank" class="btn btn-primary">📩 &nbsp;Get Full Report →</a>
+  </div>
+</div>
+
+<!-- S-EMAIL -->
+<div class="screen" id="s-email">
+  <div class="email-wrap">
+    <div style="font-size:28px">📊</div>
+    <div class="email-title">Get your full report</div>
+    <div class="email-sub">We'll send you a personalised Capital Impact analysis — your working capital opportunity, CCC improvement, and ROIC uplift. The 1TCC team will follow up within 48 hours.</div>
+    <div style="width:100%;display:flex;flex-direction:column;gap:10px;">
+      <div class="inp-group">
+        <div class="inp-label">Your name</div>
+        <div class="email-inp-row"><input class="email-inp" id="em-name" placeholder="Jane Smith" type="text"></div>
+      </div>
+      <div class="inp-group">
+        <div class="inp-label">Work email</div>
+        <div class="email-inp-row"><input class="email-inp" id="em-email" placeholder="jane@company.com" type="email"></div>
+      </div>
+    </div>
+    <button class="btn btn-primary" style="width:100%" onclick="submitEmail()">Send report →</button>
+    <div style="font-size:10px;color:var(--w30);line-height:1.5;text-align:center;">By submitting you agree to be contacted by the 1TCC team. Data processed per our Privacy Policy.</div>
+    <button class="btn btn-secondary" onclick="goTo('s-results')" style="width:100%">← Back</button>
+  </div>
+</div>
+
+<!-- S-CONFIRM -->
+<div class="screen" id="s-confirm">
+  <div style="text-align:center;display:flex;flex-direction:column;align-items:center;gap:18px;max-width:420px">
+    <div style="font-size:52px">✅</div>
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:800;">Done!</div>
+    <div style="font-size:15px;color:var(--w60);line-height:1.6;">We'll send you your full report and a member of the 1TCC team will follow up within 48 hours.</div>
+    <div style="background:var(--navy2);border:1px solid var(--w15);border-radius:var(--r8);padding:14px 18px;width:100%;text-align:left">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:.12em;color:var(--w30);text-transform:uppercase;margin-bottom:7px">Confirmed</div>
+      <div id="conf-summary" style="font-size:13px;color:var(--w60);line-height:1.7;"></div>
+    </div>
+    <button class="btn btn-primary" onclick="goTo('s0')" style="width:100%">↺ Play again</button>
+  </div>
+</div>
+
+<!-- S-LEADS -->
+<div class="screen" id="s-leads">
+  <div style="width:100%;display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+    <div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:.14em;color:var(--yellow);text-transform:uppercase">INTERNAL · TCC USE ONLY</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:800;">Lead capture</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-secondary" onclick="clearLeads()" style="font-size:11px;padding:8px 14px">Clear</button>
+      <button class="btn btn-primary" onclick="exportLeads()" style="font-size:12px;padding:9px 18px">Export CSV</button>
+      <button class="btn btn-secondary" onclick="goTo('s0')" style="font-size:11px;padding:8px 14px">← Back</button>
+    </div>
+  </div>
+  <div id="lead-count" style="font-size:12px;color:var(--w60);margin-bottom:10px;"></div>
+  <div class="lead-table-wrap">
+    <table class="leads">
+      <thead><tr>
+        <th>#</th><th>Date</th><th>Name</th><th>Email</th><th>Company</th>
+        <th>Inventory</th><th>CCC</th><th>Mode</th><th>Score</th><th>FCF Impact</th><th>MCap Upside</th>
+      </tr></thead>
+      <tbody id="lead-tbody"></tbody>
+    </table>
+  </div>
+  <div style="font-size:10px;color:var(--w30);margin-top:6px;">Type "leads" on the attract screen to access this dashboard.</div>
+</div>
+
+<script>
+const DEMO_CO={companyName:'GlobalManufacturing Co.',ticker:'DEMO',inventoryValue:4.2,marketCap:68.5,fcfMultiple:28,logoUrl:null,industry:'Industrial Manufacturing'};
+const SHEET_WEBHOOK_URL='https://script.google.com/macros/s/AKfycbyjI7lc_x7nt2cXKXTzdjVBepGZQcxU3CwslBRRKYoVt65c3ks6qOtDKyzM4AvtQGXMAg/exec';
+let MODE='',CO={},COMPANY={},CQ=0,SCORE=0,ANSWERED=false,TIMER_INT=null,TIME_LEFT=30,LEADS=[],FCF_HISTORY=[0],FCF_TOTAL=0,fcfChart=null;
+
+const BASE_QS=[
+  {ctx:'Inventory pile-up',txt:"It's Q3. You have $INV in raw materials in your warehouse. Interest rates at 6%. Your board is asking why working capital is at an all-time high.",opts:['Take a write-down — absorb the loss and clear the books','Transfer ownership to 1TCC — they hold it, you consume on demand','Rush a fire sale to distributors at 20% discount'],correct:1,fcf_ok:280,fcf_bad:-80,fb_ok:'<strong>Optimal.</strong> 1TCC holds the inventory on its own books. You preserve full value, free cash, and move the asset off your balance sheet — fully GAAP and IFRS compliant.',fb_bad:'Write-downs and fire sales destroy value permanently. 1TCC holds inventory and you consume on demand — preserving value, freeing cash, zero write-down.'},
+  {ctx:'Supplier payment crunch',txt:'A Tier-1 supplier needs payment in 15 days. Your CCC is $CCC days. Drawing on the revolver would push Net Debt/EBITDA above your covenant threshold.',opts:["Route via 1TCC's SupplierPay Card™ — supplier paid today, you pay at consumption",'Draw on the revolver — risk the covenant breach','Delay supplier payment — risk the relationship'],correct:0,fcf_ok:120,fcf_bad:-60,fb_ok:"<strong>Smart.</strong> SupplierPay Card™ pays the supplier immediately. You pay 1TCC at consumption. Covenant preserved, supplier relationship intact, zero new debt.",fb_bad:"Covenant breach signals distress to lenders. Delaying erodes your supplier's trust. 1TCC's SupplierPay Card™ solves both — supplier paid today, you pay at consumption."},
+  {ctx:'New product launch',txt:'Launching a new product in 6 months. Procurement needs to stage $300M in components across 4 geographies now — before a single unit is sold. Board has frozen capex.',opts:['Find cheaper suppliers to reduce upfront cost — accept quality risk','Delay the launch — wait for capex to unfreeze','Let 1TCC purchase and stage components globally — you pay at consumption'],correct:2,fcf_ok:180,fcf_bad:-120,fb_ok:'<strong>Market-winning.</strong> 1TCC funds and stages the $300M globally. You launch on time without touching capex. Competitors who delayed lose the window permanently.',fb_bad:'Cheaper suppliers risk your launch quality. Delays hand market share to competitors. 1TCC funds the staging without capex impact.'},
+  {ctx:'Audit & compliance',txt:'Auditors flag that a recent inventory financing arrangement may not qualify for off-balance-sheet treatment under IFRS 16. Restatement risk could affect your credit rating.',opts:['Challenge the auditors — absorb the legal cost','Switch back to on-balance-sheet financing to be safe',"Restructure through 1TCC's VMI model — SAP-native, pre-validated for US GAAP and IFRS"],correct:2,fcf_ok:60,fcf_bad:-40,fb_ok:"<strong>Clean.</strong> 1TCC's VMI structure is pre-validated for audit readiness — full traceability, compliant ownership transfer, zero restatement risk.",fb_bad:"Legal battles are expensive and uncertain. On-balance-sheet financing loads your ratios. 1TCC's model is pre-validated for both US GAAP and IFRS — nothing to restate."},
+  {ctx:'The BCG transformation',txt:'BCG has presented a $50M supply chain transformation roadmap. Projected benefit: $600M in freed working capital over 3 years. Your board asks: where does the capital come from to fund the transformation itself?',opts:['Defer the transformation until organic cash flow improves','Issue new equity to fund the program — dilute shareholders','Deploy 1TCC alongside BCG — freed working capital from Day 1 self-funds the transformation'],correct:2,fcf_ok:600,fcf_bad:-50,fb_ok:'<strong>The CFO move.</strong> 1TCC generates liquidity from month one. BCG designs the roadmap; 1TCC funds the journey. The transformation becomes self-financing.',fb_bad:'Deferral lets competitors move first. Equity dilution destroys shareholder value. 1TCC makes the transformation self-funding by releasing working capital from Day 1.'}
+];
+
+function goTo(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');if(id==='s-leads')renderLeads();if(id==='s-results')renderResults();}
+
+let _kb='';
+document.addEventListener('keydown',e=>{if(!e.key)return;_kb+=e.key.toLowerCase();if(_kb.endsWith('leads')){renderLeads();goTo('s-leads');}if(_kb.length>10)_kb=_kb.slice(-10);});
+
+function selectMode(m){MODE=m;document.getElementById('mc-demo').classList.toggle('sel',m==='demo');document.getElementById('mc-live').classList.toggle('sel',m==='live');const b=document.getElementById('btn-mode-next');b.style.opacity='1';b.style.pointerEvents='auto';}
+function modeNext(){if(!MODE)return;if(MODE==='live'){goTo('s-ticker');}else{CO={...DEMO_CO};COMPANY={inv:CO.inventoryValue*1000,ccc:75,wacc:8,rating:'BBB',optin:true};startGame();}}
+
+function startFromTicker(){
+  if(!document.getElementById('in-optin').checked){
+    const lbl=document.getElementById('optin-label');
+    lbl.style.borderColor='var(--red)';lbl.style.boxShadow='0 0 0 3px rgba(255,82,82,.15)';
+    document.getElementById('optin-error').style.display='block';
+    lbl.scrollIntoView({behavior:'smooth',block:'center'});return;
+  }
+  const inv=parseFloat(document.getElementById('in-inv').value)||1200;
+  const companyName=document.getElementById('in-company').value.trim()||'Your Company';
+  CO={companyName,ticker:'—',inventoryValue:inv/1000,marketCap:inv/1000*8.3,fcfMultiple:25,logoUrl:null,industry:'—'};
+  COMPANY={inv,ccc:parseFloat(document.getElementById('in-ccc').value)||75,wacc:parseFloat(document.getElementById('in-wacc').value)||8,rating:document.getElementById('in-rating').value||'BBB',optin:true};
+  startGame();
+}
+function clearOptinError(){document.getElementById('optin-label').style.borderColor='';document.getElementById('optin-label').style.boxShadow='';document.getElementById('optin-error').style.display='none';}
+
+function startGame(){CQ=0;SCORE=0;ANSWERED=false;FCF_HISTORY=[0];FCF_TOTAL=0;document.getElementById('score-n').textContent='0';initChart();renderGameCoLogo();goTo('s-game');loadQ(0);}
+
+function renderGameCoLogo(){
+  const wrap=document.getElementById('game-co-logo');
+  if(!CO||!CO.companyName){wrap.innerHTML='';return;}
+  if(CO.logoUrl){wrap.innerHTML=`<img src="${CO.logoUrl}" onerror="this.outerHTML='<span class=co-name-txt>${CO.companyName}</span>'" style="height:24px;max-width:80px;object-fit:contain;border-radius:3px;background:var(--white);padding:2px 4px;">`;}
+  else{wrap.innerHTML=`<div class="co-logo-placeholder">${initials(CO.companyName)}</div><span class="co-name-txt">${CO.companyName}</span>`;}
+}
+
+function loadQ(i){
+  ANSWERED=false;
+  const q=buildQ(i);
+  buildDots(i);
+  document.getElementById('q-ctx').textContent=`DECISION ${i+1} / 5 · ${q.ctx}`;
+  document.getElementById('q-txt').textContent=q.txt;
+  const oc=document.getElementById('opts');oc.innerHTML='';
+  ['A','B','C'].forEach((l,idx)=>{const b=document.createElement('button');b.className='opt';b.innerHTML=`<span class="opt-l">${l}</span><span>${q.opts[idx]}</span><span class="opt-ic"></span>`;b.onclick=()=>answer(idx);oc.appendChild(b);});
+  const fb=document.getElementById('fb');fb.className='fb';fb.style.display='';
+  document.getElementById('btn-next').style.display='none';
+  clearInterval(TIMER_INT);TIME_LEFT=60;updateTimer();
+  TIMER_INT=setInterval(()=>{TIME_LEFT--;updateTimer();if(TIME_LEFT<=0){clearInterval(TIMER_INT);if(!ANSWERED)answer(-1);}},1000);
+}
+
+function buildQ(i){const inv=(COMPANY.inv||1200)/1000;const ccc=COMPANY.ccc||75;const q={...BASE_QS[i]};q.txt=q.txt.replace('$INV','$'+inv.toFixed(1)+'B').replace('$CCC',ccc);return q;}
+function buildDots(cur){const c=document.getElementById('pdots');c.innerHTML='';for(let i=0;i<5;i++){const d=document.createElement('div');d.className='pdot'+(i===cur?' active':i<cur?' done':'');c.appendChild(d);}}
+function updateTimer(){const p=(TIME_LEFT/60)*100;const tf=document.getElementById('tbar-f');tf.style.width=p+'%';tf.style.background=TIME_LEFT<=10?'var(--red)':'var(--yellow)';const tx=document.getElementById('q-timer-txt');tx.textContent=TIME_LEFT+'s';tx.className=TIME_LEFT<=10?'urg':'';}
+
+function answer(idx){
+  if(ANSWERED)return;ANSWERED=true;clearInterval(TIMER_INT);
+  const q=BASE_QS[CQ];const ok=idx===q.correct;
+  if(ok)SCORE++;document.getElementById('score-n').textContent=SCORE;
+  document.querySelectorAll('.opt').forEach((b,i)=>{b.disabled=true;if(i===q.correct){b.classList.add('correct','flash');b.querySelector('.opt-ic').textContent='✓';}else if(i===idx&&!ok){b.classList.add('wrong','flash');b.querySelector('.opt-ic').textContent='✗';}});
+  flashScreen(ok?'green':'red');
+  const fb=document.getElementById('fb');fb.style.display='';fb.className='fb show '+(ok?'ok':'bad');
+  document.getElementById('fb-ic').textContent=ok?'✅':'💡';
+  document.getElementById('fb-tx').innerHTML=ok?q.fb_ok:q.fb_bad;
+  const delta=ok?q.fcf_ok:q.fcf_bad;FCF_TOTAL+=delta;FCF_HISTORY.push(FCF_TOTAL);updateChart();
+  document.getElementById('btn-next').style.display='block';
+}
+
+function flashScreen(type){const el=document.getElementById('flash-overlay');el.className='flash-overlay '+type;setTimeout(()=>el.className='flash-overlay',600);}
+
+function initChart(){
+  if(fcfChart){fcfChart.destroy();fcfChart=null;}
+  const canvas=document.getElementById('fcf-chart');canvas.style.maxHeight='130px';
+  const ctx=canvas.getContext('2d');
+  fcfChart=new Chart(ctx,{type:'bar',data:{labels:['Start','Q1','Q2','Q3','Q4','Q5'].slice(0,FCF_HISTORY.length),datasets:[{data:FCF_HISTORY,backgroundColor:FCF_HISTORY.map(v=>v>=0?'rgba(0,208,132,0.55)':'rgba(255,82,82,0.55)'),borderColor:FCF_HISTORY.map(v=>v>=0?'#00d084':'#ff5252'),borderWidth:1,borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:400},plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`$${c.raw}M`},backgroundColor:'#122338',titleColor:'#fff',bodyColor:'rgba(255,255,255,0.7)'}},scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'rgba(255,255,255,0.35)',font:{size:9,family:'Barlow Condensed'}}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'rgba(255,255,255,0.35)',font:{size:9,family:'Barlow Condensed'},callback:v=>`$${v}M`},grace:'5%'}}}});
+}
+
+function updateChart(){
+  if(!fcfChart)return;
+  fcfChart.data.labels=['Start','Q1','Q2','Q3','Q4','Q5'].slice(0,FCF_HISTORY.length);
+  fcfChart.data.datasets[0].data=FCF_HISTORY;
+  fcfChart.data.datasets[0].backgroundColor=FCF_HISTORY.map(v=>v>=0?'rgba(0,208,132,0.55)':'rgba(255,82,82,0.55)');
+  fcfChart.data.datasets[0].borderColor=FCF_HISTORY.map(v=>v>=0?'#00d084':'#ff5252');
+  fcfChart.update();
+  document.getElementById('chart-headline').textContent=FCF_TOTAL>=0?`$${FCF_TOTAL}M freed so far`:`-$${Math.abs(FCF_TOTAL)}M lost so far`;
+  document.getElementById('chart-headline').style.color=FCF_TOTAL>=0?'var(--green)':'var(--red)';
+}
+
+function nextQ(){CQ++;if(CQ>=5)goTo('s-results');else loadQ(CQ);}
+
+function renderResults(){
+  const mcap=CO.marketCap||68.5;const pfcf=CO.fcfMultiple||28;
+  const fcfImpact=(FCF_TOTAL/1000).toFixed(2);const fcfImpactB=parseFloat(fcfImpact);
+  const mcapIncrease=(fcfImpactB*pfcf).toFixed(1);const newMcap=(Math.round((mcap+parseFloat(mcapIncrease))*10)/10).toFixed(1);
+  CO._fcfImpact='$'+Math.abs(fcfImpactB)+'B';CO._mcapNew='$'+newMcap+'B';
+  const milestones=[50,100,200,300,500,750,1000,1500,2000];let milestone=null;
+  for(const m of milestones){if(mcap<m&&parseFloat(newMcap)>=m){milestone=m;break;}}
+  const rlogo=document.getElementById('results-co-logo');
+  if(CO.logoUrl){rlogo.innerHTML=`<img src="${CO.logoUrl}" onerror="this.outerHTML='<div class=cp-logo-ph style=width:36px;height:36px;>${initials(CO.companyName||'')}</div>'" style="width:36px;height:36px;border-radius:5px;object-fit:contain;background:var(--white);padding:2px;">`;}
+  else{rlogo.innerHTML=`<div class="cp-logo-ph" style="width:36px;height:36px;">${initials(CO.companyName||'GM')}</div>`;}
+  document.getElementById('results-co-name').textContent=CO.companyName||'Your Company';
+  document.getElementById('rf-fcf').textContent=(fcfImpactB>=0?'+$'+fcfImpact+'B':'-$'+Math.abs(fcfImpact)+'B');
+  document.getElementById('rf-fcf-sub').textContent=`Your inventory program freed $${Math.abs(fcfImpact)}B in cash — ${fcfImpactB>=0?'increasing':'reducing'} Free Cash Flow by $${Math.abs(fcfImpact)}B`;
+  const dir=parseFloat(mcapIncrease)>=0;
+  document.getElementById('rf-mcap').innerHTML=`$${mcap}B <span style="color:var(--w30);font-size:18px">→</span> <span class="${dir?'pos':''}">$${newMcap}B</span>`;
+  document.getElementById('rf-mcap-sub').textContent=`Using your P/FCF multiple of ${pfcf}×, a $${Math.abs(fcfImpact)}B FCF ${dir?'improvement':'decline'} implies a potential $${Math.abs(mcapIncrease)}B change in market cap`;
+  const ms=document.getElementById('rf-milestone');
+  if(milestone){ms.innerHTML=`<div class="milestone-badge">🎯 You could cross the $${milestone>=1000?milestone/1000+'T':milestone+'B'} milestone</div>`;}else{ms.innerHTML='';}
+  const co=CO.companyName||'Your company';
+  const titles=['Needs work','Getting there','Solid instincts','Strong CFO','Optimal CFO'];
+  document.getElementById('r-insight').innerHTML=`<strong>${co}</strong> — ${titles[SCORE]} (${SCORE}/5). The optimal 1TCC strategy would free <strong>$${Math.abs(fcfImpact)}B</strong> in inventory, deliver incremental FCF of <strong>$${Math.abs(fcfImpact)}B</strong>, and translate into a potential <strong>$${Math.abs(mcapIncrease)}B</strong> market cap uplift — with <strong>zero added debt</strong> on the balance sheet.`;
+  spawnParticles();
+}
+
+function submitEmail(){
+  const name=document.getElementById('em-name').value.trim();
+  const email=document.getElementById('em-email').value.trim();
+  if(!name||!email||!email.includes('@')){['em-name','em-email'].forEach(id=>{const el=document.getElementById(id);if(!el.value.trim())el.style.outline='2px solid var(--red)';el.addEventListener('input',()=>el.style.outline='',{once:true});});return;}
+  const lead={ts:new Date().toISOString(),ts_local:new Date().toLocaleString(),name,email,company:CO.companyName||'—',ticker:CO.ticker||'—',inv:COMPANY.inv||'—',ccc:COMPANY.ccc||'—',mode:MODE,score:SCORE+'/5',fcf:CO._fcfImpact||'—',mcap:CO._mcapNew||'—'};
+  LEADS.push(lead);
+  try{localStorage.setItem('tcc_leads',JSON.stringify(LEADS));}catch(e){}
+  sendToGoogleSheets(lead);
+  console.log('[TCC Email to]',email,'\n\n'+buildEmailBody(lead));
+  let s=`<strong>Email:</strong> ${email}<br><strong>Company:</strong> ${CO.companyName||'—'}<br>`;
+  if(CO._fcfImpact)s+=`<strong>FCF Impact:</strong> ${CO._fcfImpact}<br>`;
+  if(CO._mcapNew)s+=`<strong>Market cap →</strong> ${CO._mcapNew}`;
+  document.getElementById('conf-summary').innerHTML=s;
+  goTo('s-confirm');spawnParticles();
+}
+
+function sendToGoogleSheets(lead){if(!SHEET_WEBHOOK_URL){console.log('[TCC Sheets]',lead);return;}fetch(SHEET_WEBHOOK_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(lead)}).catch(e=>console.warn('[TCC Sheets]',e));}
+
+function buildEmailBody(lead){
+  const co=lead.company&&lead.company!=='—'?lead.company:'your company';
+  const titles=['Needs work','Getting there','Solid instincts','Strong CFO','Optimal CFO'];
+  const sc=parseInt(lead.score);const title=titles[isNaN(sc)?2:Math.min(sc,4)]||'Strong CFO';
+  return `Hi ${lead.name||'there'},
+
+Thank you for playing The $1B Decision at our booth today.
+
+YOUR RESULTS
+─────────────────────────────────────────
+CFO score: ${lead.score} — ${title}
+${lead.company&&lead.company!=='—'?'Company: '+lead.company+'\n':''}
+HOW 1TCC DELIVERS RESULT
+─────────────────────────────────────────
+Based on your game decisions, you've seen how 1TCC's capital-backed
+model can transform a company's supply chain financials. Here is how
+it works in practice.
+
+1TCC purchases and holds your inventory — often $200M or more — on our
+own books, fully compliant with US GAAP and IFRS. This compresses your
+CCC, frees working capital, and improves your credit ratios without
+adding a single dollar of debt to your balance sheet.
+
+NEXT STEPS
+─────────────────────────────────────────
+A member of our team will reach out within 48 hours to walk you through
+a full CII analysis tailored to ${co}.
+
+In the meantime, feel free to reply to this email with any questions.
+
+Best regards,
+The 1TCC Team
+team@1tcc.com | www.1tcc.com
+
+─────────────────────────────────────────
+You received this email because you participated in The $1B Decision
+experience at a 1TCC event and consented to be contacted.
+
+If you no longer wish to receive communications from 1TCC, please reply
+to this email with the subject line "Unsubscribe" and we will remove you
+from our contact list within 5 business days.
+
+1TCC · team@1tcc.com · www.1tcc.com
+`;}
+
+function renderLeads(){
+  try{const s=localStorage.getItem('tcc_leads');if(s)LEADS=JSON.parse(s);}catch(e){}
+  const tb=document.getElementById('lead-tbody');tb.innerHTML='';
+  if(!LEADS.length){tb.innerHTML='<tr><td colspan="11" style="text-align:center;padding:20px;color:var(--w30)">No leads yet.</td></tr>';return;}
+  LEADS.forEach((l,i)=>{const tr=document.createElement('tr');tr.innerHTML=`<td>${i+1}</td><td style="white-space:nowrap">${l.ts_local||l.ts}</td><td>${l.name}</td><td style="color:var(--yellow)">${l.email}</td><td><strong>${l.company}</strong></td><td>${l.inv?l.inv+'M':'—'}</td><td>${l.ccc?l.ccc+'d':'—'}</td><td>${l.mode}</td><td style="color:var(--yellow);font-weight:700">${l.score}</td><td style="color:var(--green)">${l.fcf||'—'}</td><td style="color:var(--green)">${l.mcap||'—'}</td>`;tb.appendChild(tr);});
+  document.getElementById('lead-count').textContent=LEADS.length+' lead'+(LEADS.length!==1?'s':'')+' captured';
+}
+function clearLeads(){if(confirm('Clear all leads?')){LEADS=[];localStorage.removeItem('tcc_leads');renderLeads();}}
+function exportLeads(){
+  const hdr=['#','Timestamp','Name','Email','Company','Inventory(M)','CCC','Mode','Score','FCFImpact','MCap'];
+  const rows=LEADS.map((l,i)=>[i+1,l.ts_local,l.name,l.email,l.company,l.inv,l.ccc,l.mode,l.score,l.fcf,l.mcap]);
+  const csv=[hdr,...rows].map(r=>r.map(v=>'"'+(v||'').toString().replace(/"/g,'""')+'"').join(',')).join('\n');
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);a.download='1TCC_leads_'+new Date().toISOString().slice(0,10)+'.csv';a.click();
+}
+
+function initials(name){if(!name||typeof name!=='string')return'CO';return name.trim().split(/\s+/).slice(0,2).map(w=>w&&w[0]?w[0].toUpperCase():'').join('')||'CO';}
+function spawnParticles(){['💰','📈','✅','🏆','💵'].forEach((e,j)=>{for(let i=0;i<4;i++)setTimeout(()=>{const el=document.createElement('div');el.className='ptcl';el.textContent=e;el.style.left=(5+Math.random()*90)+'vw';el.style.top=(20+Math.random()*60)+'vh';el.style.animationDuration=(1+Math.random())+'s';document.body.appendChild(el);setTimeout(()=>el.remove(),2000);},j*60+i*100);});}
+
+try{const s=localStorage.getItem('tcc_leads');if(s)LEADS=JSON.parse(s);}catch(e){}
+</script>
+</body>
+</html>
